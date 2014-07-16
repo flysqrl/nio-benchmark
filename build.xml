@@ -1,0 +1,111 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project name="benchmark" basedir="." default="build">
+  
+  <property name="target" value="1.5"/>
+  <property name="source" value="1.5"/>
+  <property name="jvmoptions" value="-server -Xms2048m -Xmx2048m -XX:+UseParallelGC -XX:+AggressiveOpts -XX:+UseFastAccessorMethods"/>
+
+  <path id="benchmark.classpath">
+    <pathelement location="bin"/>
+    <pathelement location="lib/netty-3.2.0.ALPHA4-SNAPSHOT.jar"/>
+    <pathelement location="lib/xSocket-2.1.2.jar"/>
+    <pathelement location="lib/xnio-standalone-1.1.0.GA.jar"/>
+    <pathelement location="lib/grizzly-framework-1.8.6.1.jar"/>
+    <pathelement location="lib/nio_framework-1.0.jar"/>
+    <pathelement location="lib/mina-core-2.0.0-M3.jar"/>
+    <pathelement location="lib/slf4j-api-1.5.10.jar"/>
+    <pathelement location="lib/slf4j-simple-1.5.10.jar"/>
+  </path>
+  
+  <target name="init">
+    <mkdir dir="bin"/>
+    <copy includeemptydirs="false" todir="bin">
+      <fileset dir="src" excludes="**/*.launch, **/*.java"/>
+    </copy>
+  </target>
+  
+  <target name="clean">
+    <delete dir="bin"/>
+  </target>
+  
+  <target name="build" description="Compiles the source code" depends="init">
+    <echo message="${ant.project.name}: ${ant.file}"/>
+    <javac debug="true" destdir="bin" source="${source}" target="${target}">
+      <src path="src"/>
+      <classpath refid="benchmark.classpath"/>
+    </javac>
+  </target>
+  
+  <target name="benchmark" description="Runs the benchmark client" depends="build">
+    <echo>TIME_WAIT delay should be minimized for accurate testing.</echo>
+    <echo>In Linux, you can reduce the TIME_WAIT state with sysctl:</echo>
+    <echo></echo>
+    <echo>     echo '1' > /proc/sys/net/ipv4/tcp_tw_recycle</echo>
+    <echo></echo>
+
+    <input message="Please enter the host to connect to."
+           addproperty="host" defaultvalue="localhost" />
+
+    <java classname="org.jboss.netty.benchmark.echo.client.Benchmark" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+      <arg value="${host}" />
+    </java>
+  </target>
+
+  <target name="ask-thread-model" depends="build">
+    <input message="Would you enable thread pool?"
+           addproperty="answer" validargs="y,n" defaultvalue="y" />
+    <condition property="enablethreadpool" value="" else="nothreadpool">
+      <equals arg1="y" arg2="${answer}"/>
+    </condition>
+  </target>
+  
+  <target name="netty" description="Starts the Netty EchoServer" depends="ask-thread-model">
+    <java classname="org.jboss.netty.benchmark.echo.server.Netty" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+      <arg value="${enablethreadpool}" />
+    </java>
+  </target>
+  
+  <target name="xsocket" description="Starts the xSocket EchoServer" depends="ask-thread-model">
+    <java classname="org.jboss.netty.benchmark.echo.server.XSocket" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+      <arg value="${enablethreadpool}" />
+    </java>
+  </target>
+  
+  <target name="xnio" description="Starts the XNIO EchoServer" depends="ask-thread-model">
+    <java classname="org.jboss.netty.benchmark.echo.server.XNIO" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+      <arg value="${enablethreadpool}" />
+    </java>
+  </target>
+	  
+  <target name="nioframework" description="Starts the NIOFramework EchoServer" depends="ask-thread-model">
+    <java classname="org.jboss.netty.benchmark.echo.server.NIOFramework" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+      <arg value="${enablethreadpool}" />
+    </java>
+  </target>
+
+  <target name="mina" description="Starts the MINA EchoServer" depends="ask-thread-model">
+    <java classname="org.jboss.netty.benchmark.echo.server.MINA" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+      <arg value="${enablethreadpool}" />
+    </java>
+  </target>
+ 
+  <target name="grizzly" description="Starts the Grizzly EchoServer" depends="build">
+    <echo>'nothreadpool' not supported out of the box.</echo>
+    <java classname="org.jboss.netty.benchmark.echo.server.Grizzly" failonerror="true" fork="yes">
+      <classpath refid="benchmark.classpath"/>
+      <jvmarg line="${jvmoptions}" />
+    </java>
+  </target>
+</project>
