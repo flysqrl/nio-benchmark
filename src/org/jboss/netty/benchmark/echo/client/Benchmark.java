@@ -52,12 +52,12 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 public class Benchmark {
 
     private static final int[] messageSizeTable = {
-        128
+        128,256
         //64 //, 128, 256, 1024, 4096, 16384,
     };
 
     private static final int[] connectionTable = {
-        5
+        5 , 10
         //1, 5, 10, 50, 100, 500, 1000, 5000, 10000,
     };
 
@@ -71,18 +71,18 @@ public class Benchmark {
 
         // Warm up.
         System.out.println("Warming up ...");
-        runTest(factory, host, 1, 1, true, true);
+        runTest(factory, host, 256, 10, true, true);
         System.out.println("... done");
         System.out.println();
         rest();
 
         // Synchronous tests
-        for (int messageSize: messageSizeTable) {
+        /*for (int messageSize: messageSizeTable) {
             for (int connections: connectionTable) {
                 runTest(factory, host, messageSize, connections, false, true);
                 rest();
             }
-        }
+        }*/
 
         // Asynchronous tests - disabled temporarily because of too much memory consumption.
         //for (int messageSize: messageSizeTable) {
