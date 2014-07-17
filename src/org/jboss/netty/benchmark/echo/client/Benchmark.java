@@ -52,12 +52,12 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory;
 public class Benchmark {
 
     private static final int[] messageSizeTable = {
-        128,256
+        512
         //64 //, 128, 256, 1024, 4096, 16384,
     };
 
     private static final int[] connectionTable = {
-        5 , 10
+        1500
         //1, 5, 10, 50, 100, 500, 1000, 5000, 10000,
     };
 
@@ -71,13 +71,13 @@ public class Benchmark {
 
         // Warm up.
         System.out.println("Warming up ...");
-        runTest(factory, host, 256, 10, true, true);
+        runTest(factory, host, 1, 3, true, true);
         System.out.println("... done");
         System.out.println();
         rest();
 
         // Synchronous tests
-        /*for (int messageSize: messageSizeTable) {
+       /*for (int messageSize: messageSizeTable) {
             for (int connections: connectionTable) {
                 runTest(factory, host, messageSize, connections, false, true);
                 rest();
@@ -85,12 +85,12 @@ public class Benchmark {
         }*/
 
         // Asynchronous tests - disabled temporarily because of too much memory consumption.
-        //for (int messageSize: messageSizeTable) {
-        //    for (int connections: connectionTable) {
-        //        runTest(factory, host, messageSize, connections, true, true);
-        //        rest();
-        //    }
-        //}
+        for (int messageSize: messageSizeTable) {
+            for (int connections: connectionTable) {
+                runTest(factory, host, messageSize, connections, true, true);
+                rest();
+            }
+        }
 
         executor.shutdownNow();
     }
@@ -110,18 +110,19 @@ public class Benchmark {
             ChannelFactory factory, String host,
             final int messageSize, int connections, boolean asynchronous, boolean print) {
 
-        if (print) {
-            System.out.println(
-                    "Host: " + host +
-                    ", Message Size: " + messageSize +
-                    ", Connections: " + connections +
-                    ", Mode: " + (asynchronous? "ASYNC" : "SYNC"));
-        }
-
         final long counterLimit =
             messageSize * (asynchronous? 5 : 1) *
             (long) (Constant.MESSAGE_COUNT * Math.log(connections * Math.E));
 
+        if (print) {
+            System.out.println(
+                    "Host: " + host +
+                    ", Message Size: " + messageSize +
+                    ", CounterLimit: "+ counterLimit +
+                    ", Connections: " + connections +
+                    ", Mode: " + (asynchronous? "ASYNC" : "SYNC"));
+        }
+        
         ClientBootstrap bootstrap = new ClientBootstrap(factory);
         bootstrap.setOption("tcpNoDelay", true);
         bootstrap.setOption(
@@ -153,18 +154,23 @@ public class Benchmark {
         long connectionStartTime = System.nanoTime();
 
         ChannelFuture[] fa = new ChannelFuture[connections];
+        int connectionCount = 0;
         for (int i = 0; i < connections; i ++) {
             fa[i] = bootstrap.connect(new InetSocketAddress(host, Constant.PORT));
         }
-
+        boolean correct = true;
         for (ChannelFuture f: fa) {
             f.awaitUninterruptibly();
-            if (!f.isSuccess()) {
-                f.getCause().printStackTrace();
-                System.exit(0);
+            if(f.isSuccess()) {
+            	connectionCount++;
+            }else {
+            	correct = false;
             }
         }
-
+        System.out.println("success connected count :" +connectionCount);
+        if(!correct) {
+             System.exit(0);
+        }
         long connectionEndTime = System.nanoTime();
         if (print) {
             System.out.format(
@@ -215,8 +221,9 @@ public class Benchmark {
 
         if (print) {
             System.out.format(
-                    "* Read/Write Throughput: %10.3f MiB/s (%.3f s)%n%n",
+                    "* Read/Write Throughput: %10.3f MiB/s %10.3f req/s (%.3f s)%n%n",
                     counter.get() * 1000.0 / 1048576.0 / (endTime - startTime),
+                    counter.get() * 1000.0 / messageSize/ (endTime - startTime),
                     (endTime - startTime) / 1000.0);
         }
     }

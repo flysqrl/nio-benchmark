@@ -31,7 +31,7 @@ public class Constant {
     public static final int INITIAL_READ_BUFFER_SIZE = 16384;
     public static final int MAX_READ_BUFFER_SIZE = 65536;
     public static final int THREAD_POOL_SIZE = 16;
-    public static final int MESSAGE_COUNT = 50000;
+    public static final int MESSAGE_COUNT = 50;
     public static final int CHANNEL_MEMORY_LIMIT = MAX_READ_BUFFER_SIZE * 2;
     public static final long GLOBAL_MEMORY_LIMIT = Runtime.getRuntime().maxMemory() / 3;
 }
